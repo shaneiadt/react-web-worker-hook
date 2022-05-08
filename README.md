@@ -44,3 +44,5 @@ export default function App() {
   );
 }
 ```
+
+Example: https://codesandbox.io/s/web-worker-react-hook-dh7hcs
