@@ -1,7 +1,10 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 
+// eslint-disable-next-line no-unused-vars
 export type Work = () => (this: Window, e: MessageEvent<any>) => void;
 
+// eslint-disable-next-line no-shadow
 export enum STATUS {
   IDLE = "IDLE",
   SUCCESS = "SUCCESS",
@@ -11,9 +14,10 @@ export enum STATUS {
 }
 
 const fnToworkerURL = (fn: Function) => {
-  var blob = new Blob(["(" + fn.toString() + ")()"], {
+  const blob = new Blob([`(${fn.toString()})()`], {
     type: "text/javascript",
   });
+
   return URL.createObjectURL(blob);
 };
 
@@ -21,6 +25,7 @@ class WorkerBuilder extends Worker {
   constructor(url: string) {
     super(url);
 
+    // eslint-disable-next-line no-constructor-return
     return new Worker(url);
   }
 }
@@ -31,7 +36,7 @@ export const useWorker = <T extends object | number | string>(
   postMessage: (arg: T) => void;
   result: string;
   status: STATUS;
-  updateAction: (action: () => void) => void;
+  updateAction: (userAction: () => void) => void;
 } => {
   const [result, setResult] = useState("");
   const [status, setStatus] = useState<STATUS>(STATUS.IDLE);
@@ -51,6 +56,7 @@ export const useWorker = <T extends object | number | string>(
   };
 
   instance.onerror = (e) => {
+    // eslint-disable-next-line no-console
     console.error(e);
     setStatus(STATUS.ERROR);
   };
@@ -60,8 +66,8 @@ export const useWorker = <T extends object | number | string>(
     instance.postMessage(arg);
   };
 
-  const updateAction = (action: () => void) => {
-    setInstance(() => new WorkerBuilder(fnToworkerURL(action)));
+  const updateAction = (userAction: () => void) => {
+    setInstance(() => new WorkerBuilder(fnToworkerURL(userAction)));
   };
 
   return { postMessage, result, status, updateAction };
