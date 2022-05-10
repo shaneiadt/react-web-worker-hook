@@ -1,5 +1,5 @@
-/* eslint-disable no-shadow */
 /* eslint-disable no-constructor-return */
+/* eslint-disable no-shadow */
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 
@@ -39,43 +39,34 @@ export const useWorker = <T, K>(
 } => {
   const [result, setResult] = useState<K>();
   const [status, setStatus] = useState<STATUS>(STATUS.IDLE);
-  const [instance, setInstance] = useState<WorkerBuilder>();
+  const [instance, setInstance] = useState(
+    new WorkerBuilder(fnToworkerURL(action))
+  );
 
   useEffect(() => {
-    if (!window.Worker) {
-      setStatus(STATUS.UNSUPPORTED);
-    } else {
-      updateAction(action);
-    }
+    setInstance(() => new WorkerBuilder(fnToworkerURL(action)));
   }, [action]);
 
-  const setEventListeners = () => {
-    if (STATUS.UNSUPPORTED || !instance) return;
+  instance.onmessage = ({ data }) => {
+    setStatus(STATUS.SUCCESS);
+    if (data) {
+      setResult(data);
+    }
+  };
 
-    instance.onmessage = ({ data }) => {
-      setStatus(STATUS.SUCCESS);
-      if (data) {
-        setResult(data);
-      }
-    };
-
-    instance.onerror = (e) => {
-      // eslint-disable-next-line no-console
-      console.error(e);
-      setStatus(STATUS.ERROR);
-    };
+  instance.onerror = (e) => {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    setStatus(STATUS.ERROR);
   };
 
   const postMessage = (arg: T) => {
-    if (STATUS.UNSUPPORTED || !instance) return;
-
     setStatus(STATUS.SENT);
     instance.postMessage(arg);
   };
 
   const updateAction = (userAction: () => void) => {
     setInstance(() => new WorkerBuilder(fnToworkerURL(userAction)));
-    setEventListeners();
   };
 
   return { postMessage, result, status, updateAction };
