@@ -1,10 +1,10 @@
+/* eslint-disable no-shadow */
+/* eslint-disable no-constructor-return */
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 
-// eslint-disable-next-line no-unused-vars
 export type Work = () => (this: Window, e: MessageEvent<any>) => void;
 
-// eslint-disable-next-line no-shadow
 export enum STATUS {
   IDLE = "IDLE",
   SUCCESS = "SUCCESS",
@@ -25,49 +25,57 @@ class WorkerBuilder extends Worker {
   constructor(url: string) {
     super(url);
 
-    // eslint-disable-next-line no-constructor-return
     return new Worker(url);
   }
 }
 
-export const useWorker = <T extends object | number | string>(
+export const useWorker = <T, K>(
   action: () => void
 ): {
   postMessage: (arg: T) => void;
-  result: string;
+  result: K | undefined;
   status: STATUS;
   updateAction: (userAction: () => void) => void;
 } => {
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<K>();
   const [status, setStatus] = useState<STATUS>(STATUS.IDLE);
-  const [instance, setInstance] = useState(
-    new WorkerBuilder(fnToworkerURL(action))
-  );
+  const [instance, setInstance] = useState<WorkerBuilder>();
 
   useEffect(() => {
-    setInstance(() => new WorkerBuilder(fnToworkerURL(action)));
+    if (!window.Worker) {
+      setStatus(STATUS.UNSUPPORTED);
+    } else {
+      updateAction(action);
+    }
   }, [action]);
 
-  instance.onmessage = ({ data }) => {
-    setStatus(STATUS.SUCCESS);
-    if (data) {
-      setResult(data);
-    }
-  };
+  const setEventListeners = () => {
+    if (STATUS.UNSUPPORTED || !instance) return;
 
-  instance.onerror = (e) => {
-    // eslint-disable-next-line no-console
-    console.error(e);
-    setStatus(STATUS.ERROR);
+    instance.onmessage = ({ data }) => {
+      setStatus(STATUS.SUCCESS);
+      if (data) {
+        setResult(data);
+      }
+    };
+
+    instance.onerror = (e) => {
+      // eslint-disable-next-line no-console
+      console.error(e);
+      setStatus(STATUS.ERROR);
+    };
   };
 
   const postMessage = (arg: T) => {
+    if (STATUS.UNSUPPORTED || !instance) return;
+
     setStatus(STATUS.SENT);
     instance.postMessage(arg);
   };
 
   const updateAction = (userAction: () => void) => {
     setInstance(() => new WorkerBuilder(fnToworkerURL(userAction)));
+    setEventListeners();
   };
 
   return { postMessage, result, status, updateAction };
