@@ -1,6 +1,6 @@
 {
   "name": "web-worker-react-hook",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Custom React hook for working with the Web Workers API",
   "homepage": "https://github.com/shaneiadt/react-web-worker-hook",
   "main": "dist/index.js",
