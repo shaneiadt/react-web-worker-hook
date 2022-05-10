@@ -72,7 +72,7 @@ type PostMessageArgumentType = number;
 type ResultType = number;
 
 export default function App() {
-  const { postMessage, result, status, updateAction } = useWorker<PostMessageArgumentType, ResultType>(job1);
+  const { postMessage, result, status, updateAction } = useWorker<PostMessageArgumentType, ResultType>(job);
 
   return (
     <div className="App">
