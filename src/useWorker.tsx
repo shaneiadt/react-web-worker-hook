@@ -1,3 +1,5 @@
+/* eslint-disable consistent-return */
+/* eslint-disable no-param-reassign */
 /* eslint-disable no-constructor-return */
 /* eslint-disable no-shadow */
 /* eslint-disable no-unused-vars */
@@ -10,7 +12,7 @@ export enum STATUS {
   SUCCESS = "SUCCESS",
   UNSUPPORTED = "UNSUPPORTED",
   ERROR = "ERROR",
-  SENT = "SENT",
+  PROCESSING = "PROCESSING",
 }
 
 const fnToworkerURL = (fn: Function) => {
@@ -34,39 +36,46 @@ export const useWorker = <T, K>(
 ): {
   postMessage: (arg: T) => void;
   result: K | undefined;
-  status: STATUS;
+  status: { status: STATUS; error?: ErrorEvent };
   updateAction: (userAction: () => void) => void;
 } => {
   const [result, setResult] = useState<K>();
-  const [status, setStatus] = useState<STATUS>(STATUS.IDLE);
-  const [instance, setInstance] = useState(
-    new WorkerBuilder(fnToworkerURL(action))
-  );
+  const [status, setStatus] = useState<{ status: STATUS; error?: ErrorEvent }>({
+    status: STATUS.IDLE,
+  });
+  const [instance, setInstance] = useState<WorkerBuilder>();
 
   useEffect(() => {
-    setInstance(() => new WorkerBuilder(fnToworkerURL(action)));
+    if (!window.Worker) return setStatus({ status: STATUS.UNSUPPORTED });
+
+    setEventListeners(new WorkerBuilder(fnToworkerURL(action)));
   }, [action]);
 
-  instance.onmessage = ({ data }) => {
-    setStatus(STATUS.SUCCESS);
-    if (data) {
-      setResult(data);
-    }
-  };
+  const setEventListeners = (instance: WorkerBuilder) => {
+    setStatus({ status: STATUS.IDLE });
+    setResult(undefined);
 
-  instance.onerror = (e) => {
-    // eslint-disable-next-line no-console
-    console.error(e);
-    setStatus(STATUS.ERROR);
+    instance.onmessage = ({ data }) => {
+      setStatus({ status: STATUS.SUCCESS });
+      if (data) {
+        setResult(data);
+      }
+    };
+
+    instance.onerror = (error) => {
+      setStatus({ status: STATUS.ERROR, error });
+    };
+
+    setInstance(() => instance);
   };
 
   const postMessage = (arg: T) => {
-    setStatus(STATUS.SENT);
-    instance.postMessage(arg);
+    setStatus({ status: STATUS.PROCESSING });
+    instance?.postMessage(arg);
   };
 
-  const updateAction = (userAction: () => void) => {
-    setInstance(() => new WorkerBuilder(fnToworkerURL(userAction)));
+  const updateAction = (newAction: () => void) => {
+    setEventListeners(new WorkerBuilder(fnToworkerURL(newAction)));
   };
 
   return { postMessage, result, status, updateAction };

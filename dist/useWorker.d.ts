@@ -4,11 +4,14 @@ export declare enum STATUS {
     SUCCESS = "SUCCESS",
     UNSUPPORTED = "UNSUPPORTED",
     ERROR = "ERROR",
-    SENT = "SENT"
+    PROCESSING = "PROCESSING"
 }
 export declare const useWorker: <T, K>(action: () => void) => {
     postMessage: (arg: T) => void;
     result: K | undefined;
-    status: STATUS;
+    status: {
+        status: STATUS;
+        error?: ErrorEvent | undefined;
+    };
     updateAction: (userAction: () => void) => void;
 };
